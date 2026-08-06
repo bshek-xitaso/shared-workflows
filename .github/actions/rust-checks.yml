@@ -1,0 +1,59 @@
+name: Rust Checks
+description: Run configurable checks for an already checked-out Rust project
+
+inputs:
+  run-format:
+    description: Run cargo fmt
+    required: false
+    default: "false"
+
+  run-clippy:
+    description: Run cargo clippy
+    required: false
+    default: "false"
+
+  clippy-args:
+    description: Additional arguments passed to cargo clippy
+    required: false
+    default: ""
+
+  run-publish-dry-run:
+    description: Run cargo publish --dry-run
+    required: false
+    default: "false"
+
+  publish-dry-run-args:
+    description: Additional arguments passed to cargo publish --dry-run
+    required: false
+    default: ""
+
+runs:
+  using: composite
+
+  steps:
+    - name: Format check
+      if: ${{ inputs.run-format == 'true' }}
+      shell: bash
+      run: |
+        rustup component add rustfmt
+        cargo fmt --all -- --check -l
+
+    - name: Clippy check
+      if: ${{ inputs.run-clippy == 'true' }}
+      shell: bash
+      env:
+        CLIPPY_ARGS: ${{ inputs.clippy-args }}
+      run: |
+        rustup component add clippy
+
+        read -r -a args <<< "$CLIPPY_ARGS"
+        cargo clippy "${args[@]}" -- -D warnings
+
+    - name: Cargo publish dry-run
+      if: ${{ inputs.run-publish-dry-run == 'true' }}
+      shell: bash
+      env:
+        PUBLISH_DRY_RUN_ARGS: ${{ inputs.publish-dry-run-args }}
+      run: |
+        read -r -a args <<< "$PUBLISH_DRY_RUN_ARGS"
+        cargo publish --dry-run "${args[@]}"
