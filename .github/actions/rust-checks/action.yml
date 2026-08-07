@@ -14,14 +14,6 @@ inputs:
     description: Additional arguments passed to cargo clippy
     default: ""
 
-  run-publish-dry-run:
-    description: Run cargo publish --dry-run
-    default: "false"
-
-  publish-dry-run-args:
-    description: Additional arguments passed to cargo publish --dry-run
-    default: ""
-
 runs:
   using: composite
 
@@ -43,12 +35,3 @@ runs:
 
         read -r -a args <<< "$CLIPPY_ARGS"
         cargo clippy "${args[@]}" -- -D warnings
-
-    - name: Cargo publish dry-run
-      if: inputs.run-publish-dry-run == 'true'
-      shell: bash
-      env:
-        PUBLISH_DRY_RUN_ARGS: ${{ inputs.publish-dry-run-args }}
-      run: |
-        read -r -a args <<< "$PUBLISH_DRY_RUN_ARGS"
-        cargo publish --dry-run "${args[@]}"
