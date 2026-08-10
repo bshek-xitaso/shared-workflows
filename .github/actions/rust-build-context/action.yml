@@ -15,7 +15,7 @@ outputs:
     value: ${{ steps.get-versions.outputs.git-version }}
 
   targetref:
-    description: Git reference argument passed to DevGuard scanners
+    description: Git reference argument passed to security scanners
     value: ${{ steps.get-versions.outputs.targetref }}
 
   targets:
