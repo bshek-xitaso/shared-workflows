@@ -1,21 +1,21 @@
 name: Rust Build Context
-description: Compute versions and build targets for the Rust build workflow
+description: Compute build metadata and target matrix for the Rust build workflow
 
 outputs:
   msrv-version:
-    description: Minimum supported Rust version
+    description: Minimum supported Rust version used in the build matrix
     value: ${{ steps.get-versions.outputs.msrv-version }}
 
   stable-version:
-    description: Current stable Rust version
+    description: Current stable Rust version used in the build matrix
     value: ${{ steps.get-versions.outputs.stable-version }}
 
   git-version:
-    description: Version label derived from the current Git reference
+    description: Version label used for generated artifact names
     value: ${{ steps.get-versions.outputs.git-version }}
 
   targetref:
-    description: Git reference argument passed to security scanners
+    description: Git reference argument passed to DevGuard scanners
     value: ${{ steps.get-versions.outputs.targetref }}
 
   targets:
@@ -26,16 +26,19 @@ runs:
   using: composite
 
   steps:
+    # Collect build metadata used for Rust version selection, artifact naming and Git reference arguments passed to DevGuard scanners
     - name: Extract versions
       id: get-versions
       shell: bash
       run: |
+        # Determine the minimum supported and current stable Rust versions used in the build matrix
         MSRV=$(cargo metadata --no-deps --format-version=1 --locked | jq -r '.packages[0].rust_version')
         echo "msrv-version=$MSRV" >> "$GITHUB_OUTPUT"
-
         STABLE_VERSION=$(rustc +stable --version | awk '{print $2}')
         echo "stable-version=$STABLE_VERSION" >> "$GITHUB_OUTPUT"
 
+        # Determine the version label used for generated artifact names:
+        # Use the Git tag for tag builds, a PR-specific label for pull requests and "latest" for other branch builds.
         GIT_VERSION=$(git describe --tags)
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
           GIT_VERSION="pr-${{ github.event.pull_request.number }}"
@@ -44,6 +47,7 @@ runs:
         fi
         echo "git-version=$GIT_VERSION" >> "$GITHUB_OUTPUT"
 
+        # Select the Git reference argument expected by DevGuard
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
           TARGETREF=--ref=${{ github.head_ref }}
         else
@@ -52,9 +56,10 @@ runs:
         echo "targetref=$TARGETREF" >> "$GITHUB_OUTPUT"
 
     - name: Compute build targets
-      id: get-targets # this is a bit hacky, but it allows us to have different targets for PRs and for main/tag builds without having to duplicate the entire matrix strategy
+      id: get-targets # This is a bit hacky, but it allows us to have different targets for PRs and for main/tag builds without having to duplicate the entire matrix strategy
       shell: bash
       run: |
+        # Provide all supported targets to the build matrix for non-PR builds
         FULL_TARGETS=$(jq -cn '[
           {"arch": "x86_64-unknown-linux-gnu",  "runs-on": "ubuntu-latest"},
           {"arch": "aarch64-unknown-linux-gnu", "runs-on": "ubuntu-24.04-arm"},
