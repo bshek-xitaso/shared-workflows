@@ -1,5 +1,5 @@
 name: Rust Build Context
-description: Compute build metadata and target matrix for the Rust build workflow
+description: Compute build metadata and target matrix for an already checked-out Rust project with rustup configured
 
 outputs:
   msrv-version:
@@ -30,6 +30,11 @@ runs:
     - name: Extract versions
       id: get-versions
       shell: bash
+      # Prevent direct interpolation of potentially untrusted Git ref values into the shell script:
+      # https://docs.github.com/en/actions/reference/security/secure-use#good-practices-for-mitigating-script-injection-attacks
+      env:
+        HEAD_REF: ${{ github.head_ref }}
+        REF_NAME: ${{ github.ref_name }}
       run: |
         # Determine the minimum supported and current stable Rust versions used in the build matrix
         MSRV=$(cargo metadata --no-deps --format-version=1 --locked | jq -r '.packages[0].rust_version')
@@ -49,9 +54,9 @@ runs:
 
         # Select the Git reference argument expected by DevGuard
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-          TARGETREF=--ref=${{ github.head_ref }}
+          TARGETREF="--ref=$HEAD_REF"
         else
-          TARGETREF=--defaultRef=${{ github.ref_name }}
+          TARGETREF="--defaultRef=$REF_NAME"
         fi
         echo "targetref=$TARGETREF" >> "$GITHUB_OUTPUT"
 
