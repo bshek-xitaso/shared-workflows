@@ -1,0 +1,42 @@
+name: Rust Checks
+description: Run configurable checks for an already checked-out and configured Rust project
+
+inputs:
+  run-format:
+    description: Run cargo fmt
+    default: "true"
+
+  run-clippy:
+    description: Run cargo clippy
+    default: "true"
+
+  clippy-extra-args:
+    description: Additional arguments passed to "cargo clippy --all-targets --locked"
+    default: ""
+
+runs:
+  using: composite
+
+  steps:
+    - name: Format check
+      if: inputs.run-format == 'true'
+      shell: bash
+      run: |
+        rustup component add rustfmt
+        
+        # Check formatting for all workspace packages and list files that need changes
+        cargo fmt --all -- --check -l
+
+    - name: Clippy check
+      if: inputs.run-clippy == 'true'
+      shell: bash
+      env:
+        CLIPPY_EXTRA_ARGS: ${{ inputs.clippy-extra-args }}
+      run: |
+        rustup component add clippy
+
+        # Split additional arguments into a Bash array without interpreting backslashes
+        read -r -a args <<< "$CLIPPY_EXTRA_ARGS"
+        
+        # Run Clippy for all Cargo targets using the lockfile and treat warnings as errors
+        cargo clippy --all-targets --locked "${args[@]}" -- -D warnings
