@@ -39,4 +39,4 @@ runs:
         read -r -a args <<< "$CLIPPY_EXTRA_ARGS"
         
         # Run Clippy for all Cargo targets using the lockfile and treat warnings as errors
-        cargo clippy --all-targets --locked "${args[@]}" -- -D warnings
+        cargo clippy --release --all-targets --locked "${args[@]}" -- -D warnings
