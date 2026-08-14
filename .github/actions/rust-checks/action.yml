@@ -11,7 +11,7 @@ inputs:
     default: "true"
 
   clippy-extra-args:
-    description: Additional arguments passed to "cargo clippy --release --all-targets --locked"
+    description: Additional arguments passed to "cargo clippy --release --workspace --all-targets --locked"
     default: ""
 
 runs:
@@ -38,5 +38,5 @@ runs:
         # Split additional arguments into a Bash array without interpreting backslashes
         read -r -a args <<< "$CLIPPY_EXTRA_ARGS"
         
-        # Run Clippy in release mode for all Cargo targets using the lockfile and treat warnings as errors
-        cargo clippy --release --all-targets --locked "${args[@]}" -- -D warnings
+        # Run Clippy in release mode for all workspace targets using the lockfile and treat warnings as errors
+        cargo clippy --release --workspace --all-targets --locked "${args[@]}" -- -D warnings
