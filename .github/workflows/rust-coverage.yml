@@ -1,3 +1,5 @@
+# Runs cargo-llvm-cov for the caller repository and adds
+# overall and per-file coverage results to the GitHub job summary.
 name: Rust Coverage
 
 on:
@@ -13,6 +15,7 @@ jobs:
         with:
           submodules: "true"
 
+      # Checkout the coverage scripts from the same commit as this reusable workflow into the .shared directory
       - name: Checkout coverage scripts
         uses: actions/checkout@v7
         with:
@@ -43,9 +46,11 @@ jobs:
         if: steps.llvm-cov-cache.outputs.cache-hit != 'true'
         run: cargo install cargo-llvm-cov --locked
 
+      # Generate coverage report in JSON format and save it to a temporary file
       - name: Generate coverage
         run: cargo llvm-cov --locked --workspace --json > /tmp/coverage.json
 
+      # Convert the generated coverage report into overall and per-file summaries and add them to the GitHub job summary
       - name: Coverage summary
         run: |
           echo "### Test Coverage Report" >> $GITHUB_STEP_SUMMARY
