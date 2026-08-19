@@ -14,6 +14,14 @@ inputs:
     description: Additional arguments passed to "cargo clippy --release --workspace --all-targets --locked"
     default: ""
 
+  run-doc:
+    description: Run cargo doc
+    default: "true"
+
+  doc-extra-args:
+    description: Additional arguments passed to "cargo doc --no-deps --document-private-items --locked"
+    default: ""
+
 runs:
   using: composite
 
@@ -40,3 +48,16 @@ runs:
         
         # Run Clippy in release mode for all workspace targets using the lockfile and treat warnings as errors
         cargo clippy --release --workspace --all-targets --locked "${args[@]}" -- -D warnings
+
+    - name: Doc check
+      if: inputs.run-doc == 'true'
+      shell: bash
+      env:
+        DOC_EXTRA_ARGS: ${{ inputs.doc-extra-args }}
+        RUSTDOCFLAGS: "-D warnings"
+      run: |
+        # Split additional arguments into a Bash array without interpreting backslashes
+        read -r -a args <<< "$DOC_EXTRA_ARGS"
+        
+        # Generate documentation without dependencies, including private items, using the lockfile and treat warnings as errors
+        cargo doc --no-deps --document-private-items --locked "${args[@]}"
