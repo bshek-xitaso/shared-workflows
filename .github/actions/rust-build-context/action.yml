@@ -14,6 +14,10 @@ outputs:
     description: Version label used for generated artifact names
     value: ${{ steps.get-versions.outputs.git-version }}
 
+  ref-name:
+    description: Git reference name
+    value: ${{ steps.get-versions.outputs.ref-name }}
+
   targetref:
     description: Git reference argument passed to DevGuard scanners
     value: ${{ steps.get-versions.outputs.targetref }}
@@ -51,6 +55,9 @@ runs:
           GIT_VERSION="latest"
         fi
         echo "git-version=$GIT_VERSION" >> "$GITHUB_OUTPUT"
+
+        # Export the Git reference name for use by calling workflows
+        echo "ref-name=$REF_NAME" >> "$GITHUB_OUTPUT"
 
         # Select the Git reference argument expected by DevGuard
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
