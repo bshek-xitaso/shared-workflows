@@ -1,0 +1,31 @@
+name: SBOM generation
+description: Generate CycloneDX and SPDX SBOMs for a built artifact containing SBOM precursor information (e.g. embedded using cargo-auditable)
+
+inputs:
+  file-to-scan:
+    description: Path to the artifact to generate SBOMs for
+    required: true
+
+  artifact-name-prefix:
+    description: Prefix for the generated SBOM artifact names
+    required: true
+
+runs:
+  using: composite
+
+  steps:
+    - name: Generate CycloneDX SBOM
+      uses: anchore/sbom-action@v0.24.0
+      with:
+        file: ${{ inputs.file-to-scan }}
+        format: cyclonedx-json
+        artifact-name: ${{ inputs.artifact-name-prefix }}_sbom.cdx.json
+        upload-release-assets: false
+
+    - name: Generate SPDX SBOM
+      uses: anchore/sbom-action@v0.24.0
+      with:
+        file: ${{ inputs.file-to-scan }}
+        format: spdx-json
+        artifact-name: ${{ inputs.artifact-name-prefix }}_sbom.spdx.json
+        upload-release-assets: false
