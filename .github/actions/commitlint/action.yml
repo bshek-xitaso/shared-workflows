@@ -1,0 +1,38 @@
+name: Conventional Commit Linting
+description: >
+  Lint commit messages and/or PR titles for an already checked-out repository (ensure checkout uses
+  fetch-depth: 0 to lint all commits). Requires the permission to read contents and pull-request
+  information
+
+runs:
+  using: composite
+
+  steps:
+    - name: Setup node
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: lts/*
+        package-manager-cache: false
+    - name: Install commitlint
+      shell: bash
+      run: npm install -g -D --ignore-scripts @commitlint/cli@21.2.2 @commitlint/config-conventional@21.2.2 # Beware that npm packages can be unpublished for the first 72h, so if possible only pin after these.
+    - name: Validate current commit (last commit) with commitlint
+      shell: bash
+      if: github.event_name == 'push'
+      run: commitlint -g ${{ github.action_path }}/commitlint.config.mjs --last --verbose
+
+    - name: Validate PR title
+      shell: bash
+      if: github.event_name == 'pull_request'
+      env:
+        PR_TITLE: ${{ github.event.pull_request.title }}
+      run: |
+        echo "$PR_TITLE" | commitlint -g ${{ github.action_path }}/commitlint.config.mjs --verbose
+    - name: Validate PR's commits with commitlint
+      shell: bash
+      if: github.event_name == 'pull_request'
+      env:
+        PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        commitlint -g ${{ github.action_path }}/commitlint.config.mjs --from "$PR_BASE_SHA" --to "$PR_HEAD_SHA" --verbose
