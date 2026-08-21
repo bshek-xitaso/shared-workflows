@@ -1,0 +1,22 @@
+name: Cargo Publish Dry Run
+description: Check that an already checked-out and configured Rust package can be published
+
+inputs:
+  extra-args:
+    description: Additional arguments passed to "cargo publish --dry-run --no-verify --locked --verbose"
+    default: ""
+
+runs:
+  using: composite
+
+  steps:
+    - name: Publish dry-run
+      shell: bash
+      env:
+        PUBLISH_DRY_RUN_EXTRA_ARGS: ${{ inputs.extra-args }}
+      run: |
+        # Split additional arguments into a Bash array without interpreting backslashes
+        read -r -a args <<< "$PUBLISH_DRY_RUN_EXTRA_ARGS"
+        
+        # Check that the package can be published using the lockfile with detailed output, without uploading or verifying the packaged crate
+        cargo publish --dry-run --no-verify --locked --verbose "${args[@]}"
