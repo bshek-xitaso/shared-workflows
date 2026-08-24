@@ -1,0 +1,13 @@
+name: Test Environment Caller
+
+on:
+  workflow_dispatch:
+
+jobs:
+  without-environment:
+    uses: ./.github/workflows/test-environment.yml
+
+  with-environment:
+    uses: ./.github/workflows/test-environment.yml
+    with:
+      environment: test

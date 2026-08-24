@@ -1,0 +1,17 @@
+name: Test Environment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        default: ""
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Test
+        run: echo "Workflow started successfully"
