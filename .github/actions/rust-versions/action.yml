@@ -1,0 +1,25 @@
+name: Rust Versions
+description: Determine the minimum supported and current stable Rust versions for an already checked-out Rust project with rustup configured
+
+outputs:
+  msrv-version:
+    description: Minimum supported Rust version
+    value: ${{ steps.get-versions.outputs.msrv-version }}
+
+  stable-version:
+    description: Current stable Rust version
+    value: ${{ steps.get-versions.outputs.stable-version }}
+
+runs:
+  using: composite
+
+  steps:
+    - name: Extract Rust versions
+      id: get-versions
+      shell: bash
+      run: |
+        MSRV=$(cargo metadata --no-deps --format-version=1 --locked | jq -r '.packages[0].rust_version')
+        echo "msrv-version=$MSRV" >> "$GITHUB_OUTPUT"
+
+        STABLE_VERSION=$(rustc +stable --version | awk '{print $2}')
+        echo "stable-version=$STABLE_VERSION" >> "$GITHUB_OUTPUT"
