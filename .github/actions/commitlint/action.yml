@@ -19,8 +19,18 @@ runs:
     - name: Validate current commit (last commit) with commitlint
       shell: bash
       if: github.event_name == 'push'
-      run: commitlint -g ${{ github.action_path }}/commitlint.config.mjs --last --verbose
-
+      env:
+        PUSH_BASE_SHA: ${{ github.event.before }}
+        PUSH_HEAD_SHA: ${{ github.event.after }}
+      # When deleting/creating a branch or a tag during a push event, after/before is set to an all zero commit sha: https://stackoverflow.com/questions/61860732/how-can-i-get-the-previous-commit-before-a-push-or-merge-in-github-action-workfl. This causes commitlint to fail. To prevent this, in such cases just lint the last commit.
+      run: |
+        if [[ "$PUSH_HEAD_SHA" =~ ^0+$ ]]; then
+          echo "Deleted target doesn't need linting."
+        elif [[ "$PUSH_BASE_SHA" =~ ^0+$ ]]; then
+          commitlint -g ${{ github.action_path }}/commitlint.config.mjs --last --verbose
+        else
+          commitlint -g ${{ github.action_path }}/commitlint.config.mjs --from "$PUSH_BASE_SHA" --to "$PUSH_HEAD_SHA" --verbose
+        fi
     - name: Validate PR title
       shell: bash
       if: github.event_name == 'pull_request'
@@ -28,11 +38,11 @@ runs:
         PR_TITLE: ${{ github.event.pull_request.title }}
       run: |
         echo "$PR_TITLE" | commitlint -g ${{ github.action_path }}/commitlint.config.mjs --verbose
-    - name: Validate PR's commits with commitlint
+    - name: Check PR's commits with commitlint
       shell: bash
       if: github.event_name == 'pull_request'
       env:
         PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       run: |
-        commitlint -g ${{ github.action_path }}/commitlint.config.mjs --from "$PR_BASE_SHA" --to "$PR_HEAD_SHA" --verbose
+        commitlint -g ${{ github.action_path }}/commitlint.config.mjs --from "$PR_BASE_SHA" --to "$PR_HEAD_SHA" --verbose || true
