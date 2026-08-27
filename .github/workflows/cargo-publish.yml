@@ -1,0 +1,54 @@
+# Checks out the caller repository, prepares Rust, validates publishability,
+# authenticates with crates.io, and publishes Rust packages.
+name: Cargo Publish
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: >
+          Optional GitHub environment for the publish job.
+          Use it when the release process relies on environment-specific configuration.
+          Otherwise leave it empty.
+        type: string
+        default: ""
+
+# We only run this workflow for v* tags, so github.ref makes the concurrency group specific to each release tag.
+# Reruns of the same tag are therefore serialized, while different release tags can run concurrently.
+concurrency:
+  group: cargo-publish-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    # Permissions for repository checkout and crates.io authentication.
+    # The caller workflow must grant at least these permissions, as
+    # permissions can only be maintained or reduced in a reusable workflow.
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Update rustup
+        run: rustup update stable --no-self-update
+
+      - name: Publish dry-run
+        uses: $/.github/actions/cargo-publish-dry-run
+
+      - name: Authenticate with crates.io
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+        id: auth
+
+      # We rely on Cargo's default package selection instead of selecting packages explicitly.
+      # In our workspace setups, members that should not be published are excluded via
+      # `publish = false` in their Cargo.toml.
+      - name: Publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: cargo publish --locked --verbose
